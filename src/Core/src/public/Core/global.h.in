@@ -1,0 +1,27 @@
+//
+// Copyright (C) 2020-2026 QuasarApp.
+// Distributed under the GPLv3 software license, see the accompanying
+// Everyone is permitted to copy and distribute verbatim copies
+// of this license document, but changing it is not allowed.
+//
+
+#ifndef CORE_GLOBAL_H
+#define CORE_GLOBAL_H
+
+#define CORE_VERSION "@MRSPAWNER_VERSION@"
+
+#if defined(CORE_LIBRARY)
+#  if defined(_WIN32) || defined(__CYGWIN__)
+#    define CORE_EXPORT __declspec(dllexport)
+#  else
+#    define CORE_EXPORT __attribute__((visibility("default")))
+#  endif
+#else
+#  if defined(_WIN32) || defined(__CYGWIN__)
+#    define CORE_EXPORT __declspec(dllimport)
+#  else
+#    define CORE_EXPORT
+#  endif
+#endif
+
+#endif // CORE_GLOBAL_H

@@ -7,6 +7,9 @@
 
 cmake_minimum_required(VERSION 3.19)
 
+# The tests module is the testing tool based on QtTest.
+# It depends on Core and Qt.
+
 get_filename_component(CURRENT_PROJECT_DIR ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 
 set(CURRENT_PROJECT "${PROJECT_NAME}_${CURRENT_PROJECT_DIR}")
@@ -20,7 +23,7 @@ set(PUBLIC_INCUDE_DIR ${PUBLIC_INCUDE_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/units")
 
 
 add_executable(${CURRENT_PROJECT} ${SOURCE_CPP})
-target_link_libraries(${CURRENT_PROJECT} PRIVATE Qt${QT_VERSION_MAJOR}::Test ${PROJECT_NAME})
+target_link_libraries(${CURRENT_PROJECT} PRIVATE Qt${QT_VERSION_MAJOR}::Test Core ${PROJECT_NAME}testcore)
 
 target_include_directories(${CURRENT_PROJECT} PUBLIC ${PUBLIC_INCUDE_DIR})
 

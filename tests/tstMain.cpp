@@ -6,7 +6,7 @@
 //#
 
 #include <QtTest>
-#include "exampletest.h"
+#include "coretest.h"
 
 // Use This macros for initialize your own test classes.
 // Check exampletests
@@ -32,7 +32,7 @@ private slots:
 
 
     // BEGIN TESTS CASES
-    TestCase(exampleTest, ExampleTest)
+    TestCase(coreTest, CoreTest)
     // END TEST CASES
 
 private:
@@ -52,12 +52,12 @@ private:
  */
 tstMain::tstMain() {
 
-    // init xample unit test
+    // init core unit test
     int argc =0;
     char * argv[] = {nullptr};
 
     _app = new QCoreApplication(argc, argv);
-    QCoreApplication::setApplicationName("testRENAME_ME");
+    QCoreApplication::setApplicationName("testMrSpawner");
     QCoreApplication::setOrganizationName("QuasarApp");
 
     auto path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
