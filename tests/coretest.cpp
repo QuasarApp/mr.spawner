@@ -9,15 +9,20 @@
 
 #include <Core/core.h>
 
-CoreTest::CoreTest() {
-
+void CoreTest::initTestCase() {
 }
 
-CoreTest::~CoreTest() {
-
+void CoreTest::cleanupTestCase() {
 }
 
-void CoreTest::test() {
+void CoreTest::coreInit() {
     QVERIFY(MrSpawner::init());
+}
+
+void CoreTest::coreVersion() {
     QVERIFY(!MrSpawner::version().empty());
 }
+
+// Standard stand-alone QTest entry point, see the Qt test tutorial:
+// https://doc.qt.io/qt-6/qttestlib-tutorial1-example.html
+QTEST_GUILESS_MAIN(CoreTest)

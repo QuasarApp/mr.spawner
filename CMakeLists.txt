@@ -24,10 +24,13 @@ if (ANDROID OR IOS OR QA_WASM32)
 endif()
 
 # Qt is only required by the tests module. The Core, Interfaces and
-# mrspawner modules work without Qt.
+# mrspawner modules work without Qt. The versionless QT package name sets
+# the QT_VERSION_MAJOR variable, so the Qt${QT_VERSION_MAJOR}:: targets can
+# be used in the modules.
 if (MRSPAWNER_TESTS)
-    find_package(Qt6 COMPONENTS Core REQUIRED)
-    find_package(Qt6 COMPONENTS Test REQUIRED)
+    find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Test QUIET)
+    find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core REQUIRED)
+    find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Test REQUIRED)
 
     qt_standard_project_setup()
 endif()
@@ -41,10 +44,6 @@ set(MRSPAWNER_VERSION "0.${GIT_COMMIT_COUNT}.${GIT_COMMIT_HASH}")
 set(MRSPAWNER_PACKAGE_ID "quasarapp.core.MrSpawner")
 
 initAll()
-
-if (MRSPAWNER_TESTS)
-    add_subdirectory(src/testcore)
-endif()
 
 add_subdirectory(src/Interfaces)
 add_subdirectory(src/Core)
