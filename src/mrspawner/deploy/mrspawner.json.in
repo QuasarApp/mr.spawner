@@ -1,0 +1,30 @@
+{
+    "bin": [
+        "src/mrspawner/mrspawner",
+        "src/mrspawner/mrspawner.exe"
+    ],
+    "name": "mrspawner",
+    "publisher": "QuasarApp group",
+    "clear": true,
+    "binPrefix": "@CMAKE_BINARY_DIR@",
+    "libDir": [
+        "@CMAKE_SOURCE_DIR@",
+        "@CMAKE_PREFIX_PATH@",
+        "@CMAKE_BINARY_DIR@"
+    ],
+    "recursiveDepth": "10",
+    "deploySystem": false,
+    "deb": true,
+    "zip": true,
+    "dmg": true,
+    "qif": false,
+    "debOut": "@MRSPAWNER_DISTRO_FULL_NAME@.deb",
+    "zipOut": "@MRSPAWNER_DISTRO_FULL_NAME@.zip",
+    "dmgOut": "@MRSPAWNER_DISTRO_FULL_NAME@.dmg",
+    "ignoreEnv": [
+        "@CMAKE_SOURCE_DIR@/Distro",
+        "@CMAKE_SOURCE_DIR@/Testing"
+    ],
+    "targetDir": "@CMAKE_SOURCE_DIR@/Distro",
+    "deployVersion": "@MRSPAWNER_VERSION@"
+}
