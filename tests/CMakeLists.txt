@@ -22,6 +22,13 @@ add_custom_target(
     COMMAND ${CMAKE_COMMAND} -E make_directory ${DIR_FOR_TESTING}
     COMMENT "Create the ${DIR_FOR_TESTING} directory for the parallel test deployments")
 
+# The deployTest<Name> targets of the addTestsArg helper pass the
+# QT_ROOT_DIR variable to the cqtdeployer libDir option. It must contain
+# the Qt installation directory, otherwise the Qt libraries of the test
+# executable are classified as system libraries and are not deployed.
+set(QT_ROOT_DIR "$ENV{QT_ROOT_DIR}")
+message("QT_ROOT_DIR = ${QT_ROOT_DIR}")
+
 set(TEST_CLASSES Core)
 
 foreach (TEST_CLASS ${TEST_CLASSES})

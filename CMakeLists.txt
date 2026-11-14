@@ -32,7 +32,14 @@ if (MRSPAWNER_TESTS)
     find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core REQUIRED)
     find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Test REQUIRED)
 
-    qt_standard_project_setup()
+    # Do not use qt_standard_project_setup() here: on Windows it sets
+    # CMAKE_RUNTIME_OUTPUT_DIRECTORY to the directory where the macro is
+    # invoked (the build root), so every executable leaves its target
+    # directory. The CI test targets and the deploy configuration expect
+    # the executables in their target directories (${CMAKE_BINARY_DIR}/tests
+    # and ${CMAKE_BINARY_DIR}/src/mrspawner), which is the CMake default.
+    set(CMAKE_AUTOMOC ON)
+    set(CMAKE_AUTOUIC ON)
 endif()
 
 include(submodules/CMake/QuasarApp.cmake)
