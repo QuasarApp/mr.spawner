@@ -28,6 +28,7 @@ private slots:
     void toolResultDefaults();
     void dummyToolContract();
     void toolManagerProtocol();
+    void toolSignals();
 };
 
 #endif // TOOLSTEST_H

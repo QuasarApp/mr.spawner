@@ -8,7 +8,7 @@
 #ifndef INTERFACES_TOOLRESULT_H
 #define INTERFACES_TOOLRESULT_H
 
-#include <string>
+#include <QString>
 
 namespace MrSpawner {
 
@@ -32,9 +32,9 @@ enum class ToolStatus {
  * message when the status is not Success.
  */
 struct ToolResult {
-    ToolStatus status{ToolStatus::Success};
-    std::string output;
-    std::string error;
+    ToolStatus status{ToolStatus::Success}; //!< The outcome of the execution
+    QString output;                         //!< The tool output handed back to the AI model
+    QString error;                          //!< The failure message when the status is not Success
 
     /**
      * @brief isSuccessful true if the tool run ended with the Success status

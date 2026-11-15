@@ -8,7 +8,8 @@
 cmake_minimum_required(VERSION 3.19)
 
 # The Interfaces module is a super lightweight library. It contains all the
-# public interfaces of the project and has no dependencies (no Qt, no Core).
+# public interfaces of the project. It has no project dependencies and is
+# built against Qt Core, the base dependency of the project.
 
 set(CURRENT_PROJECT "Interfaces")
 
@@ -20,5 +21,7 @@ file(GLOB_RECURSE SOURCE_CPP
 set(PUBLIC_INCUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/public")
 
 add_library(${CURRENT_PROJECT} STATIC ${SOURCE_CPP})
+
+target_link_libraries(${CURRENT_PROJECT} PUBLIC Qt${QT_VERSION_MAJOR}::Core)
 
 target_include_directories(${CURRENT_PROJECT} PUBLIC ${PUBLIC_INCUDE_DIR})

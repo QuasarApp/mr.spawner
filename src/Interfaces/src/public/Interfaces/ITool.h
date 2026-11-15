@@ -11,6 +11,9 @@
 #include "Interfaces/ToolRequest.h"
 #include "Interfaces/ToolResult.h"
 
+#include <QObject>
+#include <QString>
+
 namespace MrSpawner {
 
 /**
@@ -37,8 +40,12 @@ enum class ToolCategory {
  * description of its input parameters (see the tool protocol of the
  * Cline and the llama.qtcreator plugin). The Core module provides the
  * concrete tool implementations of this interface.
+ *
+ * ITool is a QObject, the Qt base class of the project: long-running
+ * tools report their progress to the agent through the progress signal.
  */
-class ITool {
+class ITool : public QObject {
+    Q_OBJECT
 public:
     virtual ~ITool() = default;
 
@@ -46,13 +53,13 @@ public:
      * @brief name the unique name of the tool in the tool protocol
      * @return the tool name, e.g. "read_file"
      */
-    virtual std::string name() const = 0;
+    virtual QString name() const = 0;
 
     /**
      * @brief displayName a short human readable name of the tool
      * @return the display name, defaults to name()
      */
-    virtual std::string displayName() const {
+    virtual QString displayName() const {
         return name();
     }
 
@@ -60,13 +67,13 @@ public:
      * @brief description the description of the tool that is shown to the AI model
      * @return the tool description
      */
-    virtual std::string description() const = 0;
+    virtual QString description() const = 0;
 
     /**
      * @brief parametersDescription the JSON description of the tool input parameters
      * @return the JSON schema of the parameters
      */
-    virtual std::string parametersDescription() const = 0;
+    virtual QString parametersDescription() const = 0;
 
     /**
      * @brief category the category of the tool operation
@@ -99,6 +106,17 @@ public:
      * and multiple times.
      */
     virtual void abort() {
+    }
+
+signals:
+    /**
+     * @brief progress reports a progress message of an in-flight execution
+     * @param message the progress message, e.g. the current step of a long running tool
+     */
+    void progress(const QString &message);
+
+protected:
+    explicit ITool(QObject *parent = nullptr) : QObject(parent) {
     }
 };
 

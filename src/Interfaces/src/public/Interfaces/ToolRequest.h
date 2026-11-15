@@ -8,8 +8,8 @@
 #ifndef INTERFACES_TOOLREQUEST_H
 #define INTERFACES_TOOLREQUEST_H
 
-#include <map>
-#include <string>
+#include <QJsonObject>
+#include <QString>
 
 namespace MrSpawner {
 
@@ -20,14 +20,14 @@ namespace MrSpawner {
  * tool-call object that the AI model produces: the name of the tool to
  * run and its input parameters.
  *
- * The parameters are plain string key-value pairs, the same format the
- * AI model tool implementations use (see the Cline and the
- * llama.qtcreator plugin tools). Complex values (arrays, nested objects)
- * are passed as JSON strings inside the parameter value.
+ * The parameters are a JSON object (QJsonObject), the same format the AI
+ * model tool implementations use (see the Cline and the llama.qtcreator
+ * plugin tools). A parameter value may be any JSON value type: string,
+ * number, boolean, array or a nested object.
  */
 struct ToolRequest {
-    std::string tool;
-    std::map<std::string, std::string> parameters;
+    QString tool;             //!< The name of the tool to execute
+    QJsonObject parameters;   //!< The input parameters of the tool call
 };
 
 }

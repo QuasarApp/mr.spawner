@@ -12,10 +12,12 @@
 #include "Interfaces/ToolRequest.h"
 #include "Interfaces/ToolResult.h"
 
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
+#include <QHash>
+#include <QJsonObject>
+#include <QSignalSpy>
+#include <QSharedPointer>
+#include <QString>
+#include <QStringList>
 
 namespace {
 
@@ -26,16 +28,19 @@ namespace {
  */
 class DummyTool : public MrSpawner::ITool {
 public:
-    std::string name() const override {
-        return "dummy";
+    explicit DummyTool(QObject *parent = nullptr) : MrSpawner::ITool(parent) {
     }
 
-    std::string description() const override {
-        return "A dummy tool that echoes the input parameter";
+    QString name() const override {
+        return QStringLiteral("dummy");
     }
 
-    std::string parametersDescription() const override {
-        return R"({"type":"object","properties":{"input":{"type":"string"}}})";
+    QString description() const override {
+        return QStringLiteral("A dummy tool that echoes the input parameter");
+    }
+
+    QString parametersDescription() const override {
+        return QStringLiteral(R"({"type":"object","properties":{"input":{"type":"string"}}})");
     }
 
     MrSpawner::ToolCategory category() const override {
@@ -43,14 +48,14 @@ public:
     }
 
     MrSpawner::ToolResult execute(const MrSpawner::ToolRequest &request) override {
+        emit progress(QStringLiteral("working"));
         MrSpawner::ToolResult result;
-        auto it = request.parameters.find("input");
-        if (it == request.parameters.end()) {
+        if (!request.parameters.contains(QStringLiteral("input"))) {
             result.status = MrSpawner::ToolStatus::Error;
-            result.error = "the input parameter is missing";
+            result.error = QStringLiteral("the input parameter is missing");
             return result;
         }
-        result.output = "dummy:" + it->second;
+        result.output = QStringLiteral("dummy:") + request.parameters.value(QStringLiteral("input")).toString();
         return result;
     }
 };
@@ -63,49 +68,51 @@ public:
  */
 class DummyToolManager : public MrSpawner::IToolManager {
 public:
-    bool registerTool(const std::shared_ptr<MrSpawner::ITool> &tool) override {
-        if (m_tools.count(tool->name()) > 0) {
+    explicit DummyToolManager(QObject *parent = nullptr) : MrSpawner::IToolManager(parent) {
+    }
+
+    bool registerTool(const QSharedPointer<MrSpawner::ITool> &tool) override {
+        if (m_tools.contains(tool->name())) {
             return false;
         }
-        m_tools[tool->name()] = tool;
+        m_tools.insert(tool->name(), tool);
+        emit toolRegistered(tool->name());
         return true;
     }
 
-    bool unregisterTool(const std::string &toolName) override {
-        return m_tools.erase(toolName) > 0;
-    }
-
-    bool hasTool(const std::string &toolName) const override {
-        return m_tools.count(toolName) > 0;
-    }
-
-    std::shared_ptr<MrSpawner::ITool> tool(const std::string &toolName) const override {
-        auto it = m_tools.find(toolName);
-        return it == m_tools.end() ? nullptr : it->second;
-    }
-
-    std::vector<std::string> tools() const override {
-        std::vector<std::string> names;
-        names.reserve(m_tools.size());
-        for (const auto &pair : m_tools) {
-            names.push_back(pair.first);
+    bool unregisterTool(const QString &toolName) override {
+        if (m_tools.remove(toolName) == 0) {
+            return false;
         }
-        return names;
+        emit toolUnregistered(toolName);
+        return true;
+    }
+
+    bool hasTool(const QString &toolName) const override {
+        return m_tools.contains(toolName);
+    }
+
+    QSharedPointer<MrSpawner::ITool> tool(const QString &toolName) const override {
+        return m_tools.value(toolName);
+    }
+
+    QStringList tools() const override {
+        return m_tools.keys();
     }
 
     MrSpawner::ToolResult execute(const MrSpawner::ToolRequest &request) override {
-        auto it = m_tools.find(request.tool);
-        if (it == m_tools.end()) {
+        auto it = m_tools.constFind(request.tool);
+        if (it == m_tools.constEnd()) {
             MrSpawner::ToolResult result;
             result.status = MrSpawner::ToolStatus::Error;
-            result.error = "unknown tool: " + request.tool;
+            result.error = QStringLiteral("unknown tool: ") + request.tool;
             return result;
         }
-        return it->second->execute(request);
+        return it.value()->execute(request);
     }
 
 private:
-    std::map<std::string, std::shared_ptr<MrSpawner::ITool>> m_tools;
+    QHash<QString, QSharedPointer<MrSpawner::ITool>> m_tools;
 };
 
 }
@@ -118,25 +125,27 @@ void ToolsTest::cleanupTestCase() {
 
 void ToolsTest::toolRequestDefaults() {
     MrSpawner::ToolRequest request;
-    QVERIFY(request.tool.empty());
-    QVERIFY(request.parameters.empty());
+    QVERIFY(request.tool.isEmpty());
+    QVERIFY(request.parameters.isEmpty());
 
-    request.tool = "dummy";
-    request.parameters["input"] = "test";
-    QCOMPARE(request.tool, std::string("dummy"));
-    QCOMPARE(request.parameters.at("input"), std::string("test"));
+    request.tool = QStringLiteral("dummy");
+    QJsonObject parameters;
+    parameters.insert(QStringLiteral("input"), QStringLiteral("test"));
+    request.parameters = parameters;
+    QCOMPARE(request.tool, QString("dummy"));
+    QCOMPARE(request.parameters.value(QStringLiteral("input")).toString(), QString("test"));
 }
 
 void ToolsTest::toolResultDefaults() {
     MrSpawner::ToolResult result;
     QCOMPARE(static_cast<int>(result.status), static_cast<int>(MrSpawner::ToolStatus::Success));
     QVERIFY(result.isSuccessful());
-    QVERIFY(result.output.empty());
-    QVERIFY(result.error.empty());
+    QVERIFY(result.output.isEmpty());
+    QVERIFY(result.error.isEmpty());
 
     MrSpawner::ToolResult errorResult;
     errorResult.status = MrSpawner::ToolStatus::Error;
-    errorResult.error = "something failed";
+    errorResult.error = QStringLiteral("something failed");
     QVERIFY(!errorResult.isSuccessful());
 
     MrSpawner::ToolResult rejectedResult;
@@ -149,21 +158,23 @@ void ToolsTest::toolResultDefaults() {
 }
 
 void ToolsTest::dummyToolContract() {
-    auto tool = std::make_shared<DummyTool>();
+    auto tool = QSharedPointer<MrSpawner::ITool>(new DummyTool);
 
-    QCOMPARE(tool->name(), std::string("dummy"));
+    QCOMPARE(tool->name(), QString("dummy"));
     QCOMPARE(tool->displayName(), tool->name());
-    QVERIFY(!tool->description().empty());
-    QVERIFY(!tool->parametersDescription().empty());
+    QVERIFY(!tool->description().isEmpty());
+    QVERIFY(!tool->parametersDescription().isEmpty());
     QVERIFY(tool->category() == MrSpawner::ToolCategory::Execute);
     QVERIFY(!tool->requiresApproval());
 
     MrSpawner::ToolRequest request;
     request.tool = tool->name();
-    request.parameters["input"] = "value";
+    QJsonObject parameters;
+    parameters.insert(QStringLiteral("input"), QStringLiteral("value"));
+    request.parameters = parameters;
     MrSpawner::ToolResult result = tool->execute(request);
     QVERIFY(result.isSuccessful());
-    QCOMPARE(result.output, std::string("dummy:value"));
+    QCOMPARE(result.output, QString("dummy:value"));
 
     // A request without the required parameter must report an error.
     MrSpawner::ToolRequest emptyRequest;
@@ -171,31 +182,33 @@ void ToolsTest::dummyToolContract() {
     MrSpawner::ToolResult errorResult = tool->execute(emptyRequest);
     QVERIFY(!errorResult.isSuccessful());
     QCOMPARE(static_cast<int>(errorResult.status), static_cast<int>(MrSpawner::ToolStatus::Error));
-    QVERIFY(!errorResult.error.empty());
+    QVERIFY(!errorResult.error.isEmpty());
 }
 
 void ToolsTest::toolManagerProtocol() {
     DummyToolManager manager;
-    QVERIFY(manager.tools().empty());
+    QVERIFY(manager.tools().isEmpty());
     QVERIFY(!manager.hasTool("dummy"));
-    QVERIFY(manager.tool("dummy") == nullptr);
+    QVERIFY(!manager.tool("dummy"));
 
-    auto tool = std::make_shared<DummyTool>();
+    auto tool = QSharedPointer<MrSpawner::ITool>(new DummyTool);
     QVERIFY(manager.registerTool(tool));
     QVERIFY(manager.hasTool("dummy"));
-    QCOMPARE(manager.tools().size(), 1u);
-    QCOMPARE(manager.tool("dummy")->name(), std::string("dummy"));
+    QCOMPARE(manager.tools().size(), 1);
+    QCOMPARE(manager.tool("dummy")->name(), QString("dummy"));
 
     // A duplicate registration must be rejected.
-    auto duplicate = std::make_shared<DummyTool>();
+    auto duplicate = QSharedPointer<MrSpawner::ITool>(new DummyTool);
     QVERIFY(!manager.registerTool(duplicate));
 
     MrSpawner::ToolRequest request;
     request.tool = "dummy";
-    request.parameters["input"] = "manager";
+    QJsonObject parameters;
+    parameters.insert(QStringLiteral("input"), QStringLiteral("manager"));
+    request.parameters = parameters;
     MrSpawner::ToolResult result = manager.execute(request);
     QVERIFY(result.isSuccessful());
-    QCOMPARE(result.output, std::string("dummy:manager"));
+    QCOMPARE(result.output, QString("dummy:manager"));
 
     // An unknown tool must produce an error result.
     MrSpawner::ToolRequest unknown;
@@ -203,11 +216,42 @@ void ToolsTest::toolManagerProtocol() {
     MrSpawner::ToolResult errorResult = manager.execute(unknown);
     QVERIFY(!errorResult.isSuccessful());
     QCOMPARE(static_cast<int>(errorResult.status), static_cast<int>(MrSpawner::ToolStatus::Error));
-    QVERIFY(!errorResult.error.empty());
+    QVERIFY(!errorResult.error.isEmpty());
 
     QVERIFY(manager.unregisterTool("dummy"));
     QVERIFY(!manager.unregisterTool("dummy"));
     QVERIFY(!manager.hasTool("dummy"));
+}
+
+void ToolsTest::toolSignals() {
+    // The tool must report its progress through the QObject signal.
+    auto tool = QSharedPointer<MrSpawner::ITool>(new DummyTool);
+    QSignalSpy progressSpy(tool.data(), &MrSpawner::ITool::progress);
+    QVERIFY(progressSpy.isValid());
+
+    MrSpawner::ToolRequest request;
+    request.tool = tool->name();
+    QJsonObject parameters;
+    parameters.insert(QStringLiteral("input"), QStringLiteral("spy"));
+    request.parameters = parameters;
+    tool->execute(request);
+    QCOMPARE(progressSpy.count(), 1);
+    QCOMPARE(progressSpy.at(0).at(0).toString(), QString("working"));
+
+    // The manager must announce registry changes through the QObject signals.
+    DummyToolManager manager;
+    QSignalSpy registeredSpy(&manager, &MrSpawner::IToolManager::toolRegistered);
+    QSignalSpy unregisteredSpy(&manager, &MrSpawner::IToolManager::toolUnregistered);
+    QVERIFY(registeredSpy.isValid());
+    QVERIFY(unregisteredSpy.isValid());
+
+    QVERIFY(manager.registerTool(QSharedPointer<MrSpawner::ITool>(new DummyTool)));
+    QCOMPARE(registeredSpy.count(), 1);
+    QCOMPARE(registeredSpy.at(0).at(0).toString(), QString("dummy"));
+
+    QVERIFY(manager.unregisterTool("dummy"));
+    QCOMPARE(unregisteredSpy.count(), 1);
+    QCOMPARE(unregisteredSpy.at(0).at(0).toString(), QString("dummy"));
 }
 
 // Standard stand-alone QTest entry point, see the Qt test tutorial:

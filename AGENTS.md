@@ -5,19 +5,20 @@ Working agreement for AI agents and human contributors in this repository.
 ## Short description
 
 Mr.Spawner is a light and fast AI agent written in modern C++ (C++23). It is
-built with CMake (3.19+) and split into small, dependency-ordered modules. The
-`Core`, `Interfaces` and `mrspawner` modules work without Qt; only the `tests`
-module needs Qt6 (QtTest). The project is licensed under GPLv3, see the
-[LICENSE](LICENSE) file.
+built with CMake (3.19+), Qt Core is the base dependency of the project, and
+the code is split into small, dependency-ordered modules. The `tests` module
+additionally needs the Qt6 Test component (QtTest). The project is licensed
+under GPLv3, see the [LICENSE](LICENSE) file.
 
 ## Architecture and structure
 
-Dependency order (a module only depends on the modules below it):
+Dependency order (a module only depends on the modules below it; Qt Core is
+the base dependency of all modules):
 
 ```
 mrspawner (CLI executable, the agent entry point)
-    ├── Core (static library, all project functionality, no Qt)
-    │       └── Interfaces (static library, public interfaces only, no dependencies)
+    ├── Core (static library, all project functionality)
+    │       └── Interfaces (static library, public interfaces only)
     └── Interfaces
 tests (QtTest executables)
     └── Core  (+ Qt::Core, Qt::Test)
@@ -28,8 +29,8 @@ Folder layout:
 | Path | Description |
 |------|-------------|
 | `CMakeLists.txt` | Root project. Defines the `MRSPAWNER_TESTS` option and the version string `0.<commit-count>.<commit-hash>` (generated from git history via `updateGitVarsWithHash`), includes the QuasarApp CMake helpers from the submodule and calls `initAll()`. |
-| `src/Interfaces/` | Super lightweight static library with all public project interfaces (e.g. `Interfaces/IAgent.h`). No Qt, no Core. Public headers live in `src/public/`. |
-| `src/Core/` | Static library that implements all project functions. **Must work without Qt.** Public API in `src/public/Core/` (`core.h`; `global.h` is generated from `global.h.in` at configure time), private code in `src/private/`. |
+| `src/Interfaces/` | Super lightweight static library with all public project interfaces (e.g. `Interfaces/IAgent.h`). Built against Qt Core, the base dependency of the project; no project dependencies. Public headers live in `src/public/`. |
+| `src/Core/` | Static library that implements all project functions. Built against Qt Core. Public API in `src/public/Core/` (`core.h`; `global.h` is generated from `global.h.in` at configure time), private code in `src/private/`. |
 | `src/mrspawner/` | The `mrspawner` CLI tool for running the agent. Depends on all modules except tests. `deploy/mrspawner.json.in` configures the CQtDeployer distribution package. |
 | `tests/` | QtTest-based test suite. One `<name>test.h` + `<name>test.cpp` pair per test class; each pair builds the `MrSpawner-tests-<Name>` executable. |
 | `submodules/CMake/` | Git submodule (QuasarApp/CMake). Provides the `test`, `doc`, `deploy` and `release` CI targets and the deploy/version helpers used by `initAll()`. |
@@ -38,7 +39,12 @@ Folder layout:
 
 Design rules:
 
-* `Interfaces` has zero dependencies; `Core` must never link against Qt.
+* Qt Core is the base dependency of the project and Qt classes (`QString`,
+  `QJsonObject`, `QSharedPointer`, `QStringList`, `QObject`, ...) are the
+  priority classes for the project classes over the standard library
+  equivalents.
+* `Interfaces` has no project dependencies (only Qt Core); `Core` depends on
+  `Interfaces` and Qt Core.
 * Public headers belong to `src/public/`; anything private stays out of it.
 * Generated files (`Core/global.h`, `mrspawner.json`, `doxygen.conf`, the
   `build/`, `Testing/` and `Distro/` directories) are produced at
@@ -48,8 +54,9 @@ Design rules:
 ## Contributing rules
 
 * Branch from `main`; do not commit directly to `main`.
-* Keep `Core` Qt-free and `Interfaces` dependency-free — new functionality
-  belongs in `Core`, new public contracts in `Interfaces`.
+* Keep `Interfaces` free of project dependencies and `Core` the only place for
+  project functionality — new functionality belongs in `Core`, new public
+  contracts in `Interfaces`. Prefer Qt Core classes for the project classes.
 * Add or extend tests in `tests/` for new functionality; new test classes
   need an entry in `TEST_CLASSES` in `tests/CMakeLists.txt`.
 * Follow the existing C++23 style (4-space indentation, `MrSpawner` namespace)
@@ -65,14 +72,14 @@ Design rules:
 # 1. Get the CMake helper submodule (done automatically on fresh clones with --recurse-submodules)
 git submodule update --init --recursive
 
-# 2. Configure (Qt6 only needed for the tests module)
+# 2. Configure (Qt6 required: the Core component for all modules, the Test component for the tests module)
 cmake -B build -DCMAKE_PREFIX_PATH=<path-to-Qt6> -DCMAKE_BUILD_TYPE=Release
 
 # 3. Build
 cmake --build build --config Release
 ```
 
-To build without the tests module (no Qt required):
+To build without the tests module (Qt Test not required):
 
 ```sh
 cmake -B build -DMRSPAWNER_TESTS=OFF

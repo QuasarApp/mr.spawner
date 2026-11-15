@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.19)
 
 # The Core module is the main implementation of all project functions.
-# It must work without Qt.
+# It is built against Qt Core, the base dependency of the project.
 
 set(CURRENT_PROJECT "Core")
 add_definitions(-DCORE_LIBRARY)
@@ -23,8 +23,9 @@ set(PRIVATE_INCUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/private")
 
 add_library(${CURRENT_PROJECT} STATIC ${SOURCE_CPP})
 
-# Core implements the public interfaces of the project.
-target_link_libraries(${CURRENT_PROJECT} PUBLIC Interfaces)
+# Core implements the public interfaces of the project and is built
+# against Qt Core, the base dependency of the project.
+target_link_libraries(${CURRENT_PROJECT} PUBLIC Interfaces Qt${QT_VERSION_MAJOR}::Core)
 
 target_include_directories(${CURRENT_PROJECT} PUBLIC ${PUBLIC_INCUDE_DIR})
 target_include_directories(${CURRENT_PROJECT} PRIVATE ${PRIVATE_INCUDE_DIR})
