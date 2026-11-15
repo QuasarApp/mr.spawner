@@ -23,24 +23,26 @@ if (ANDROID OR IOS OR QA_WASM32)
     set(MRSPAWNER_TESTS OFF CACHE BOOL "This option force disabled for ANDROID IOS QA_WASM32 and Not Qt projects" FORCE)
 endif()
 
-# Qt is only required by the tests module. The Core, Interfaces and
-# mrspawner modules work without Qt. The versionless QT package name sets
-# the QT_VERSION_MAJOR variable, so the Qt${QT_VERSION_MAJOR}:: targets can
-# be used in the modules.
-if (MRSPAWNER_TESTS)
-    find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Test QUIET)
-    find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core REQUIRED)
-    find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Test REQUIRED)
+# Qt Core is the base dependency of the project: the Interfaces, Core and
+# mrspawner modules are built against it, and the tests module additionally
+# needs the Qt Test component. The versionless QT package name sets the
+# QT_VERSION_MAJOR variable, so the Qt${QT_VERSION_MAJOR}:: targets can be
+# used in the modules.
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Core QUIET)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core REQUIRED)
 
-    # Do not use qt_standard_project_setup() here: on Windows it sets
-    # CMAKE_RUNTIME_OUTPUT_DIRECTORY to the directory where the macro is
-    # invoked (the build root), so every executable leaves its target
-    # directory. The CI test targets and the deploy configuration expect
-    # the executables in their target directories (${CMAKE_BINARY_DIR}/tests
-    # and ${CMAKE_BINARY_DIR}/src/mrspawner), which is the CMake default.
-    set(CMAKE_AUTOMOC ON)
-    set(CMAKE_AUTOUIC ON)
+if (MRSPAWNER_TESTS)
+    find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Test REQUIRED)
 endif()
+
+# Do not use qt_standard_project_setup() here: on Windows it sets
+# CMAKE_RUNTIME_OUTPUT_DIRECTORY to the directory where the macro is
+# invoked (the build root), so every executable leaves its target
+# directory. The CI test targets and the deploy configuration expect
+# the executables in their target directories (${CMAKE_BINARY_DIR}/tests
+# and ${CMAKE_BINARY_DIR}/src/mrspawner), which is the CMake default.
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
 
 include(submodules/CMake/QuasarApp.cmake)
 

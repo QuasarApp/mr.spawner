@@ -6,4 +6,11 @@
 //
 
 // The Interfaces module contains only the public interfaces of the project.
-// This translation unit keeps the library target buildable.
+// This translation unit includes the QObject based interface headers so
+// that their moc files are compiled into the library, and keeps the
+// library target buildable.
+#include "Interfaces/IAgent.h"
+#include "Interfaces/ITool.h"
+#include "Interfaces/IToolManager.h"
+#include "Interfaces/ToolRequest.h"
+#include "Interfaces/ToolResult.h"
