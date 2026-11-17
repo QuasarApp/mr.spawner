@@ -18,10 +18,10 @@ file(GLOB_RECURSE SOURCE_CPP
     "src/*.h"
 )
 
-set(PUBLIC_INCUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/public")
+set(PUBLIC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/public")
 
 add_library(${CURRENT_PROJECT} STATIC ${SOURCE_CPP})
 
 target_link_libraries(${CURRENT_PROJECT} PUBLIC Qt${QT_VERSION_MAJOR}::Core)
 
-target_include_directories(${CURRENT_PROJECT} PUBLIC ${PUBLIC_INCUDE_DIR})
+target_include_directories(${CURRENT_PROJECT} PUBLIC ${PUBLIC_INCLUDE_DIR})

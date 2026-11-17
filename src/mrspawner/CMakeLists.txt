@@ -16,13 +16,13 @@ file(GLOB_RECURSE SOURCE_CPP
     "*.cpp" "*.h"
 )
 
-set(PUBLIC_INCUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+set(PUBLIC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
 add_executable(${CURRENT_PROJECT} ${SOURCE_CPP})
 
 target_link_libraries(${CURRENT_PROJECT} PUBLIC Core Interfaces)
 
-target_include_directories(${CURRENT_PROJECT} PUBLIC ${PUBLIC_INCUDE_DIR})
+target_include_directories(${CURRENT_PROJECT} PUBLIC ${PUBLIC_INCLUDE_DIR})
 
 # Prepare the distribution package of the mrspawner CLI. The package names
 # are exported to the GitHub Actions environment, see the
