@@ -90,8 +90,8 @@ public:
     }
 
     MrSpawner::ToolResult execute(const MrSpawner::ToolRequest &request) override {
-        auto it = m_skills.constFind(request.tool);
-        if (it == m_skills.constEnd()) {
+        auto it = m_skills.find(request.tool);
+        if (it == m_skills.end()) {
             MrSpawner::ToolResult result;
             result.status = MrSpawner::ToolStatus::Error;
             result.error = QStringLiteral("unknown skill: ") + request.tool;
