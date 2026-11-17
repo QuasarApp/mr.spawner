@@ -37,7 +37,7 @@ public:
     }
 
     MrSpawner::SkillCategory category() const override {
-        return MrSpawner::SkillCategory::Execute;
+        return MrSpawner::SkillCategory::Unknown;
     }
 
     MrSpawner::ToolResult activate(const MrSpawner::ToolRequest &context) override {
@@ -55,6 +55,7 @@ public:
 };
 
 class DummySkillManager : public MrSpawner::IToolSkillManager {
+    QHash<QString, QSharedPointer<MrSpawner::Skill>> m_skills;
 public:
     explicit DummySkillManager(QObject *parent = nullptr) : MrSpawner::IToolSkillManager(parent) {
     }
@@ -96,7 +97,7 @@ public:
             result.error = QStringLiteral("unknown skill: ") + request.tool;
             return result;
         }
-        return it->activate(request);
+        return it->data()->activate(request);
     }
 };
 

@@ -120,7 +120,7 @@ public:
      * @brief availableCapabilities lists all available capabilities when connected
      * @return the list of available capabilities
      */
-    virtual QStringList availableCapabilities() const;
+    virtual QStringList availableCapabilities() const { return QStringList(); }
 
     /**
      * @brief abort stops an in-flight connection or disconnection.
