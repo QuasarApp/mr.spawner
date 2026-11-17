@@ -50,7 +50,7 @@ public:
         return MrSpawner::ToolResult();
     }
 
-    MrSpawner::QStringList availableCapabilities() const override {
+    QStringList availableCapabilities() const override {
         return QStringList() << "tools" << "prompts";
     }
 };
