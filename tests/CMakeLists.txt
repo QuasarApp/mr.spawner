@@ -29,7 +29,7 @@ add_custom_target(
 set(QT_ROOT_DIR "$ENV{QT_ROOT_DIR}")
 message("QT_ROOT_DIR = ${QT_ROOT_DIR}")
 
-set(TEST_CLASSES Core Tools Skills McpServer Plugin)
+set(TEST_CLASSES Core Tools Skills McpServer NetworkProtocol Plugin)
 
 foreach (TEST_CLASS ${TEST_CLASSES})
     string(TOLOWER ${TEST_CLASS} TEST_CLASS_LOWER)
