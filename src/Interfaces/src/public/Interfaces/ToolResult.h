@@ -47,4 +47,9 @@ struct ToolResult {
 
 }
 
+// The metatype registration is placed in the global scope and uses the
+// fully qualified type name, because Q_DECLARE_METATYPE expands inside the
+// Qt namespace where the unqualified name would not resolve.
+Q_DECLARE_METATYPE(MrSpawner::ToolResult)
+
 #endif // INTERFACES_TOOLRESULT_H
