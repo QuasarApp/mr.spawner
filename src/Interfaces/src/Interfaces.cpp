@@ -12,5 +12,7 @@
 #include "Interfaces/IAgent.h"
 #include "Interfaces/ITool.h"
 #include "Interfaces/IToolManager.h"
+#include "Interfaces/INetworkProtocol.h"
+#include "Interfaces/INetworkProtocolManager.h"
 #include "Interfaces/ToolRequest.h"
 #include "Interfaces/ToolResult.h"
