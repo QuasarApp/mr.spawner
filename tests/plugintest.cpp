@@ -8,13 +8,20 @@
 #include "plugintest.h"
 
 #include "Interfaces/IPlugin.h"
+#include "Interfaces/IPluginManager.h"
 
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QHash>
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QMetaType>
 #include <QObject>
 #include <QSignalSpy>
+#include <QSharedPointer>
 #include <QString>
+#include <QTemporaryDir>
 #include <QVariant>
 
 namespace {
@@ -30,11 +37,12 @@ class TestPlugin : public MrSpawner::IPlugin {
     Q_OBJECT
     Q_INTERFACES(MrSpawner::IPlugin)
 public:
-    explicit TestPlugin(QObject *parent = nullptr) : MrSpawner::IPlugin(parent) {
+    explicit TestPlugin(const QString &name = QStringLiteral("test-plugin"), QObject *parent = nullptr)
+        : MrSpawner::IPlugin(parent), m_name(name) {
     }
 
     QString name() const override {
-        return QStringLiteral("test-plugin");
+        return m_name;
     }
 
     QString description() const override {
@@ -71,6 +79,105 @@ public:
 
 private:
     bool m_failInitialize = false;
+    QString m_name;
+};
+
+/**
+ * @brief The DummyPluginManager class
+ *
+ * A minimal in-memory IPluginManager implementation to verify the plugin
+ * manager protocol contract. The loadPlugin() and unloadPlugin() methods
+ * simulate the QPluginLoader based plugin loading of the Qt plugin
+ * system: a plugin file is a marker file and the file name without the
+ * suffix is the name of the loaded plugin, like the Qt plugin loader
+ * derives it from the shared library.
+ */
+class DummyPluginManager : public MrSpawner::IPluginManager {
+public:
+    explicit DummyPluginManager(QObject *parent = nullptr) : MrSpawner::IPluginManager(parent) {
+    }
+
+    bool registerPlugin(const QSharedPointer<MrSpawner::IPlugin> &plugin) override {
+        if (m_plugins.contains(plugin->name())) {
+            return false;
+        }
+        m_plugins.insert(plugin->name(), plugin);
+        emit pluginRegistered(plugin->name());
+        return true;
+    }
+
+    bool unregisterPlugin(const QString &pluginName) override {
+        if (m_plugins.remove(pluginName) == 0) {
+            return false;
+        }
+        emit pluginUnregistered(pluginName);
+        return true;
+    }
+
+    bool hasPlugin(const QString &pluginName) const override {
+        return m_plugins.contains(pluginName);
+    }
+
+    QSharedPointer<MrSpawner::IPlugin> plugin(const QString &pluginName) const override {
+        return m_plugins.value(pluginName);
+    }
+
+    QStringList plugins() const override {
+        return m_plugins.keys();
+    }
+
+    bool loadPlugin(const QString &pluginPath) override {
+        const QFileInfo info(pluginPath);
+        if (!info.exists() || !info.isFile()) {
+            // The error is stored under the plugin name that the file
+            // would have, so it can be queried with pluginError().
+            m_errors.insert(info.completeBaseName(), QStringLiteral("the plugin file does not exist: ") + pluginPath);
+            return false;
+        }
+        const QString name = info.completeBaseName();
+        if (m_plugins.contains(name)) {
+            m_errors.insert(name, QStringLiteral("a plugin with the name is already registered"));
+            return false;
+        }
+        auto plugin = QSharedPointer<MrSpawner::IPlugin>(new TestPlugin(name));
+        if (!plugin->initialize()) {
+            m_errors.insert(name, plugin->error());
+            return false;
+        }
+        m_plugins.insert(name, plugin);
+        emit pluginRegistered(name);
+        return true;
+    }
+
+    bool loadPlugins(const QString &pluginDirectory) override {
+        QDir dir(pluginDirectory);
+        if (!dir.exists() || !dir.isReadable()) {
+            return false;
+        }
+        for (const QString &file : dir.entryList(QDir::Files)) {
+            loadPlugin(dir.absoluteFilePath(file));
+        }
+        return true;
+    }
+
+    bool unloadPlugin(const QString &pluginName) override {
+        auto it = m_plugins.constFind(pluginName);
+        if (it == m_plugins.constEnd()) {
+            return false;
+        }
+        it.value()->shutdown();
+        m_plugins.erase(it);
+        emit pluginUnregistered(pluginName);
+        return true;
+    }
+
+    QString pluginError(const QString &pluginName) const override {
+        return m_errors.value(pluginName);
+    }
+
+private:
+    QHash<QString, QSharedPointer<MrSpawner::IPlugin>> m_plugins;
+    QHash<QString, QString> m_errors;
 };
 
 }
@@ -157,6 +264,116 @@ void PluginTest::pluginSignals() {
     QVERIFY(plugin.initialize());
     QCOMPARE(progressSpy.count(), 1);
     QCOMPARE(progressSpy.at(0).at(0).toString(), QString("initializing"));
+}
+
+void PluginTest::pluginManagerProtocol() {
+    DummyPluginManager manager;
+    QVERIFY(manager.plugins().isEmpty());
+    QVERIFY(!manager.hasPlugin("test-plugin"));
+    QVERIFY(!manager.plugin("test-plugin"));
+    // Without a load or initialization attempt no error is reported.
+    QVERIFY(manager.pluginError("test-plugin").isEmpty());
+
+    auto plugin = QSharedPointer<MrSpawner::IPlugin>(new TestPlugin);
+    QVERIFY(manager.registerPlugin(plugin));
+    QVERIFY(manager.hasPlugin("test-plugin"));
+    QCOMPARE(manager.plugins().size(), 1);
+    QCOMPARE(manager.plugin("test-plugin")->name(), QString("test-plugin"));
+    // The registry must return the registered plugin object.
+    QVERIFY(manager.plugin("test-plugin") == plugin);
+
+    // A duplicate registration must be rejected.
+    auto duplicate = QSharedPointer<MrSpawner::IPlugin>(new TestPlugin);
+    QVERIFY(!manager.registerPlugin(duplicate));
+
+    QVERIFY(manager.unregisterPlugin("test-plugin"));
+    QVERIFY(!manager.unregisterPlugin("test-plugin"));
+    QVERIFY(!manager.hasPlugin("test-plugin"));
+    QVERIFY(manager.plugins().isEmpty());
+}
+
+void PluginTest::pluginManagerLoad() {
+    // The plugin files of the Qt plugin system are shared libraries. For
+    // the manager contract test a plain marker file is enough: the file
+    // name without the suffix is the name of the plugin.
+    QTemporaryDir tempDir;
+    QVERIFY(tempDir.isValid());
+    const QString pluginFile = tempDir.filePath("first_plugin.so");
+    {
+        QFile file(pluginFile);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("dummy plugin");
+        file.close();
+    }
+
+    DummyPluginManager manager;
+    // A successful load registers the plugin and initializes it.
+    QVERIFY(manager.loadPlugin(pluginFile));
+    QVERIFY(manager.hasPlugin("first_plugin"));
+    QVERIFY(manager.plugin("first_plugin") != nullptr);
+    QVERIFY(manager.plugin("first_plugin")->isInitialized());
+
+    // A second load of the same plugin must be rejected with an error.
+    QVERIFY(!manager.loadPlugin(pluginFile));
+    QVERIFY(manager.hasPlugin("first_plugin"));
+    QVERIFY(!manager.pluginError("first_plugin").isEmpty());
+
+    // A missing plugin file must fail with an error message.
+    QVERIFY(!manager.loadPlugin(tempDir.filePath("missing_plugin.so")));
+    QVERIFY(!manager.hasPlugin("missing_plugin"));
+    QVERIFY(!manager.pluginError("missing_plugin").isEmpty());
+
+    // unloadPlugin() must call shutdown() and remove the plugin from the
+    // registry, like the QPluginLoader::unload() of the Qt plugin system
+    // unloads the plugin library.
+    auto loaded = manager.plugin("first_plugin");
+    QVERIFY(loaded->isInitialized());
+    QVERIFY(manager.unloadPlugin("first_plugin"));
+    QVERIFY(!manager.hasPlugin("first_plugin"));
+    QVERIFY(loaded->isInitialized() == false);
+    // An unknown plugin cannot be unloaded.
+    QVERIFY(!manager.unloadPlugin("first_plugin"));
+}
+
+void PluginTest::pluginManagerLoadDirectory() {
+    QTemporaryDir tempDir;
+    QVERIFY(tempDir.isValid());
+    for (const QString &name : {QString("alpha_plugin.so"), QString("beta_plugin.so")}) {
+        QFile file(tempDir.filePath(name));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("dummy plugin");
+        file.close();
+    }
+
+    DummyPluginManager manager;
+    // Every file of the directory must be loaded and registered.
+    QVERIFY(manager.loadPlugins(tempDir.path()));
+    QCOMPARE(manager.plugins().size(), 2);
+    QVERIFY(manager.hasPlugin("alpha_plugin"));
+    QVERIFY(manager.hasPlugin("beta_plugin"));
+    QVERIFY(manager.plugin("alpha_plugin")->isInitialized());
+    QVERIFY(manager.plugin("beta_plugin")->isInitialized());
+
+    // A missing directory must be reported.
+    QVERIFY(!manager.loadPlugins(tempDir.filePath("no_such_dir")));
+}
+
+void PluginTest::pluginManagerSignals() {
+    // The manager must announce registry changes through the QObject
+    // signals.
+    DummyPluginManager manager;
+    QSignalSpy registeredSpy(&manager, &MrSpawner::IPluginManager::pluginRegistered);
+    QSignalSpy unregisteredSpy(&manager, &MrSpawner::IPluginManager::pluginUnregistered);
+    QVERIFY(registeredSpy.isValid());
+    QVERIFY(unregisteredSpy.isValid());
+
+    QVERIFY(manager.registerPlugin(QSharedPointer<MrSpawner::IPlugin>(new TestPlugin)));
+    QCOMPARE(registeredSpy.count(), 1);
+    QCOMPARE(registeredSpy.at(0).at(0).toString(), QString("test-plugin"));
+
+    QVERIFY(manager.unregisterPlugin("test-plugin"));
+    QCOMPARE(unregisteredSpy.count(), 1);
+    QCOMPARE(unregisteredSpy.at(0).at(0).toString(), QString("test-plugin"));
 }
 
 // Standard stand-alone QTest entry point, see the Qt test tutorial:

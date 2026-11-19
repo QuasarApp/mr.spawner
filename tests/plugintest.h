@@ -13,9 +13,10 @@
 /**
  * @brief The PluginTest class
  *
- * Tests of the IPlugin interface of the Interfaces module. The tests
- * implement the interface with a small in-test dummy plugin and check
- * the plugin contract of the Qt plugin system based interface.
+ * Tests of the IPlugin and the IPluginManager interfaces of the
+ * Interfaces module. The tests implement the interfaces with a small
+ * in-test dummy plugin and a dummy plugin manager and check the plugin
+ * contract of the Qt plugin system based interfaces.
  */
 class PluginTest : public QObject {
     Q_OBJECT
@@ -28,6 +29,10 @@ private slots:
     void pluginInterfaceCast();
     void pluginLifecycle();
     void pluginSignals();
+    void pluginManagerProtocol();
+    void pluginManagerLoad();
+    void pluginManagerLoadDirectory();
+    void pluginManagerSignals();
 };
 
 #endif // PLUGINTEST_H

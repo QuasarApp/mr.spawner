@@ -11,6 +11,7 @@
 // library target buildable.
 #include "Interfaces/IAgent.h"
 #include "Interfaces/IPlugin.h"
+#include "Interfaces/IPluginManager.h"
 #include "Interfaces/ITool.h"
 #include "Interfaces/IToolManager.h"
 #include "Interfaces/INetworkProtocol.h"
