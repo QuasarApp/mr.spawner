@@ -6,6 +6,7 @@
 //
 
 #include "Core/core.h"
+#include "Core/contextstorage.h"
 
 namespace MrSpawner {
 
