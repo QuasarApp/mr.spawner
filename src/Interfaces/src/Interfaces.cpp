@@ -10,6 +10,8 @@
 // that their moc files are compiled into the library, and keeps the
 // library target buildable.
 #include "Interfaces/IAgent.h"
+#include "Interfaces/IContextStorage.h"
+#include "Interfaces/ContextSession.h"
 #include "Interfaces/IPlugin.h"
 #include "Interfaces/IPluginManager.h"
 #include "Interfaces/ITool.h"
