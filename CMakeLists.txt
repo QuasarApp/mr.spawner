@@ -64,17 +64,6 @@ set(MRSPAWNER_PACKAGE_ID "quasarapp.core.MrSpawner")
 
 initAll()
 
-# The QuasarAppLib static library (the QuasarApp target) and the main
-# configuration system of the console app (the QuasarAppUtils::Config
-# class).
-#
-# The QuasarAppLib CMakeLists registers the doxygenQuasarAppDocs target
-# with the doxygen.conf file, but it never configures it from the
-# doxygen.conf.in template, so configure it here to keep the doc target
-# working. The generated file is git-ignored by the submodule.
-set(QUASARAPP_VERSION "1.6.0")
-configure_file(submodules/QuasarAppLib/doxygen.conf.in
-               ${CMAKE_CURRENT_SOURCE_DIR}/submodules/QuasarAppLib/doxygen.conf @ONLY)
 add_subdirectory(submodules/QuasarAppLib)
 
 add_subdirectory(src/Interfaces)
