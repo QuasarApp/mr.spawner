@@ -19,7 +19,8 @@ the base dependency of all modules):
 mrspawner (CLI executable, the agent entry point)
     ├── Core (static library, all project functionality)
     │       └── Interfaces (static library, public interfaces only)
-    └── Interfaces
+    ├── Interfaces
+    └── QuasarApp (the QuasarAppLib static library, the configuration system)
 tests (QtTest executables)
     └── Core  (+ Qt::Core, Qt::Test)
 ```
@@ -28,12 +29,12 @@ Folder layout:
 
 | Path | Description |
 |------|-------------|
-| `CMakeLists.txt` | Root project. Defines the `MRSPAWNER_TESTS` option and the version string `0.<commit-count>.<commit-hash>` (generated from git history via `updateGitVarsWithHash`), includes the QuasarApp CMake helpers from the submodule and calls `initAll()`. |
+| `CMakeLists.txt` | Root project. Defines the `MRSPAWNER_TESTS` option and the version string `0.<commit-count>.<commit-hash>` (generated from git history via `updateGitVarsWithHash`), includes the QuasarApp CMake helpers from the `submodules/QuasarAppLib` submodule (the cmake include is internal to the library) and calls `initAll()`. |
 | `src/Interfaces/` | Super lightweight static library with all public project interfaces (e.g. `Interfaces/IAgent.h`). Built against Qt Core, the base dependency of the project; no project dependencies. Public headers live in `src/public/`. |
 | `src/Core/` | Static library that implements all project functions. Built against Qt Core. Public API in `src/public/Core/` (`core.h`; `global.h` is generated from `global.h.in` at configure time), private code in `src/private/`. |
-| `src/mrspawner/` | The `mrspawner` CLI tool for running the agent. Depends on all modules except tests. `deploy/mrspawner.json.in` configures the CQtDeployer distribution package. |
+| `src/mrspawner/` | The `mrspawner` CLI tool for running the agent. Depends on all modules except tests and on the `QuasarApp` target of QuasarAppLib; the `QuasarAppUtils::Config` class of QuasarAppLib is the main system of configuration of the console app. `deploy/mrspawner.json.in` configures the CQtDeployer distribution package. |
 | `tests/` | QtTest-based test suite. One `<name>test.h` + `<name>test.cpp` pair per test class; each pair builds the `MrSpawner-tests-<Name>` executable. |
-| `submodules/CMake/` | Git submodule (QuasarApp/CMake). Provides the `test`, `doc`, `deploy` and `release` CI targets and the deploy/version helpers used by `initAll()`. |
+| `submodules/QuasarAppLib/` | Git submodule (QuasarApp/QuasarAppLib). The QuasarApp static library (Params, Settings/Config, Locales, Global modules) and the QuasarApp CMake helpers (internal to the library at `CMake/`) that provide the `test`, `doc`, `deploy` and `release` CI targets and the deploy/version helpers used by `initAll()`. |
 | `.github/workflows/` | `pr.yml` — PR build + test matrix (Windows, Linux, macOS with Qt 6.10.3). `cmake-multi-platform-build.yml` — release builds and distribution uploads on `v*` tags. |
 | `doxygen.conf.in` | Doxygen configuration template used by the `doc` target. |
 
@@ -61,15 +62,16 @@ Design rules:
   need an entry in `TEST_CLASSES` in `tests/CMakeLists.txt`.
 * Follow the existing C++23 style (4-space indentation, `MrSpawner` namespace)
   and the GPLv3 file header.
-* Do not edit the `submodules/CMake` submodule — changes to build helpers
-  belong to the QuasarApp/CMake repository.
+* Do not edit the `submodules/QuasarAppLib` submodule — changes to the
+  QuasarApp library or the build helpers belong to the QuasarApp/QuasarAppLib
+  repository.
 * A pull request is only mergeable when CI (build + tests on Windows, Linux
   and macOS) is green.
 
 ## Build instructions
 
 ```sh
-# 1. Get the CMake helper submodule (done automatically on fresh clones with --recurse-submodules)
+# 1. Get the QuasarAppLib submodule (done automatically on fresh clones with --recurse-submodules)
 git submodule update --init --recursive
 
 # 2. Configure (Qt6 required: the Core component for all modules, the Test component for the tests module)
