@@ -20,7 +20,10 @@ set(PUBLIC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
 add_executable(${CURRENT_PROJECT} ${SOURCE_CPP})
 
-target_link_libraries(${CURRENT_PROJECT} PUBLIC Core Interfaces)
+# The mrspawner executable is linked against the QuasarAppLib static
+# library (the QuasarApp target). The QuasarAppUtils::Config class of
+# this library is the main system of configuration of the console app.
+target_link_libraries(${CURRENT_PROJECT} PUBLIC Core Interfaces QuasarApp)
 
 target_include_directories(${CURRENT_PROJECT} PUBLIC ${PUBLIC_INCLUDE_DIR})
 
